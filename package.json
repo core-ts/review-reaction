@@ -1,0 +1,26 @@
+{
+  "name": "reaction-service",
+  "version": "0.5.1",
+  "description": "reaction",
+  "main": "./lib/index.js",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build:lib": "tsc",
+    "clean:lib": "rimraf lib"
+  },
+  "devDependencies": {
+    "tslint": "5.10.0",
+    "typescript": "^3.3.3333"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com/core-ts/reaction"
+  },
+  "keywords": [
+    "reaction",
+    "reaction service"
+  ]
+}
