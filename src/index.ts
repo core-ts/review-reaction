@@ -3,16 +3,18 @@ import { Attributes, Search, SearchResult } from './core';
 
 export * from './comment';
 
-export interface URL {
+export interface Info {
   id: string;
-  url: string;
+  url?: string;
+  name?: string;
+  displayname?: string;
 }
 export class ReactionService<R extends Model, F> {
   constructor(protected find: Search<R, F>,
     public repository: BaseRepository<R>,
     protected reactionRepository: ReactionRepository,
     protected commentRepository: CommentRepository,
-    protected queryURL?: (ids: string[]) => Promise<URL[]>) {
+    protected queryInfo?: (ids: string[]) => Promise<Info[]>) {
     this.search = this.search.bind(this);
     this.load = this.load.bind(this);
     this.getRate = this.getRate.bind(this);
@@ -26,19 +28,22 @@ export class ReactionService<R extends Model, F> {
   }
   search(s: F, limit?: number, offset?: number | string, fields?: string[]): Promise<SearchResult<R>> {
     return this.find(s, limit, offset, fields).then(res => {
-      if (!this.queryURL) {
+      if (!this.queryInfo) {
         return res;
       } else {
         if (res.list && res.list.length > 0) {
           const ids: string[] = [];
           for (const rate of res.list) {
-            ids.push(rate.author);
+            if (!ids.includes(rate.author)) {
+              ids.push(rate.author);
+            }
           }
-          return this.queryURL(ids).then(urls => {
+          return this.queryInfo(ids).then(info => {
             for (const rate of res.list) {
-              const i = binarySearch(urls, rate.author);
-              if (i >= 0) {
-                rate.authorURL = urls[i].url;
+              const i = binarySearch(info, rate.author);
+              if (i >= 0 && !rate.anonymous) {
+                rate.authorURL = info[i].url;
+                rate.authorName = info[i].displayname ? info[i].displayname : info[i].name;
               }
             }
             return res;
@@ -107,16 +112,19 @@ export class ReactionService<R extends Model, F> {
   }
   getComments(id: string, author: string, limit?: number): Promise<Comment[]> {
     return this.commentRepository.getComments(id, author, limit).then(comments => {
-      if (this.queryURL) {
+      if (this.queryInfo) {
         const ids: string[] = [];
         for (const comment of comments) {
-          ids.push(comment.userId);
+          if (!ids.includes(comment.userId)) {
+            ids.push(comment.userId);
+          }
         }
-        return this.queryURL(ids).then(urls => {
+        return this.queryInfo(ids).then(info => {
           for (const comment of comments) {
-            const i = binarySearch(urls, comment.userId);
-            if (i >= 0) {
-              comment.userURL = urls[i].url;
+            const i = binarySearch(info, comment.userId);
+            if (i >= 0 && !comment.anonymous) {
+              comment.authorURL = info[i].url;
+              comment.authorName = info[i].displayname ? info[i].displayname : info[i].name;
             }
           }
           return comments;
@@ -128,11 +136,12 @@ export class ReactionService<R extends Model, F> {
   }
   getComment(id: string): Promise<Comment | null> {
     return this.commentRepository.load(id).then(comment => {
-      if (comment && this.queryURL) {
-        return this.queryURL([id]).then(urls => {
-          const i = binarySearch(urls, comment.userId);
-          if (i >= 0) {
-            comment.userURL = urls[i].url;
+      if (comment && this.queryInfo) {
+        return this.queryInfo([id]).then(info => {
+          const i = binarySearch(info, comment.userId);
+          if (i >= 0 && !comment.anonymous) {
+            comment.authorURL = info[i].url;
+            comment.authorName = info[i].displayname ? info[i].displayname : info[i].name;
           }
           return comment;
         });
@@ -146,7 +155,7 @@ export interface BaseCommentRepository {
   load(commentId: string, ctx?: any): Promise<Comment | null>;
   getComments(id: string, author: string, limit?: number): Promise<Comment[]>;
 }
-function binarySearch(ar: URL[], el: string): number {
+function binarySearch(ar: Info[], el: string): number {
   let m = 0;
   let n = ar.length - 1;
   while (m <= n) {

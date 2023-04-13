@@ -1,6 +1,6 @@
 {
   "name": "review-reaction",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "reaction",
   "main": "./lib/index.js",
   "types": "./src/index.ts",

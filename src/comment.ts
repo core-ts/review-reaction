@@ -3,6 +3,8 @@ import { Attributes, Filter, Repository, SearchResult } from './core';
 export interface Model {
   author: string;
   authorURL?: string;
+  authorName?: string;
+  anonymous?: boolean;
 }
 export interface BaseRepository<R> {
   load(id: string, author: string): Promise<R | null>;
@@ -55,6 +57,8 @@ export interface Comment {
   histories?: ShortComment[];
   userURL?: string;
   authorURL?: string;
+  anonymous?: boolean;
+  authorName?: string;
 }
 export interface ShortComment {
   comment: string;
